@@ -1,0 +1,5 @@
+# Replace the placeholder owners below before using this repository.
+
+.github/workflows/* @REPLACE_WITH_RELEASE_OWNERS
+README.md @REPLACE_WITH_RELEASE_OWNERS
+docs/RELEASING.md @REPLACE_WITH_RELEASE_OWNERS

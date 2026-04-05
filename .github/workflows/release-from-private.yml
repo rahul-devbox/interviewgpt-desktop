@@ -1,0 +1,423 @@
+name: Release From Private Source
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_owner:
+        description: Owner of the private source repository
+        required: true
+        type: string
+      source_repo:
+        description: Name of the private source repository
+        required: true
+        type: string
+      source_ref:
+        description: Human-readable source ref for metadata
+        required: true
+        type: string
+      source_sha:
+        description: Exact private source commit SHA to build
+        required: true
+        type: string
+      release_tag:
+        description: Public release tag to publish
+        required: true
+        type: string
+      version:
+        description: Desktop version being released
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  PUBLIC_UPDATE_BASE_URL: https://github.com/${{ github.repository }}/releases/latest/download
+
+concurrency:
+  group: release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Private Source
+    runs-on: ubuntu-latest
+    outputs:
+      source_repository: ${{ steps.metadata.outputs.source_repository }}
+    steps:
+      - name: Checkout release repository
+        uses: actions/checkout@v4
+
+      - name: Checkout private source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source_owner }}/${{ inputs.source_repo }}
+          ref: ${{ inputs.source_sha }}
+          token: ${{ secrets.SOURCE_REPO_READ_TOKEN }}
+          path: source
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+
+      - name: Verify Forge fuse dependency alignment
+        working-directory: source
+        run: node scripts/validate-forge-fuse-versions.cjs
+
+      - name: Verify requested version matches package.json
+        working-directory: source
+        run: |
+          ACTUAL_VERSION="$(node -p "require('./package.json').version")"
+          if [ "${ACTUAL_VERSION}" != "${{ inputs.version }}" ]; then
+            echo "Expected version ${{ inputs.version }}, found ${ACTUAL_VERSION}" >&2
+            exit 1
+          fi
+
+      - name: Verify source repository allowlist and release tag
+        shell: bash
+        env:
+          EXPECTED_SOURCE_REPO_OWNER: ${{ vars.EXPECTED_SOURCE_REPO_OWNER }}
+        run: |
+          EXPECTED_RELEASE_TAG="v${{ inputs.version }}"
+          if [ "${{ inputs.release_tag }}" != "${EXPECTED_RELEASE_TAG}" ]; then
+            echo "Release tag ${{ inputs.release_tag }} does not match version ${{ inputs.version }}." >&2
+            echo "Expected tag: ${EXPECTED_RELEASE_TAG}" >&2
+            exit 1
+          fi
+
+          if [ "${{ inputs.source_repo }}" != "app-interviewgpt" ]; then
+            echo "Source repository name ${{ inputs.source_repo }} is not allowed." >&2
+            echo "Expected: app-interviewgpt" >&2
+            exit 1
+          fi
+
+          if [ -n "${EXPECTED_SOURCE_REPO_OWNER}" ] && [ "${{ inputs.source_owner }}" != "${EXPECTED_SOURCE_REPO_OWNER}" ]; then
+            echo "Source repository owner ${{ inputs.source_owner }} is not allowed." >&2
+            echo "Expected: ${EXPECTED_SOURCE_REPO_OWNER}" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        working-directory: source
+        run: npm ci
+
+      - name: Audit production dependencies
+        working-directory: source
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lint, typecheck, test, and build
+        working-directory: source
+        run: npm run check
+
+      - name: Generate SBOM
+        working-directory: source
+        run: |
+          mkdir -p ../release-validation
+          npm sbom --package-lock-only --omit=dev --sbom-format cyclonedx > ../release-validation/sbom.cyclonedx.json
+
+      - name: Generate release manifest
+        id: metadata
+        run: |
+          SOURCE_REPOSITORY="${{ inputs.source_owner }}/${{ inputs.source_repo }}"
+          node .github/scripts/write-release-manifest.cjs \
+            --version "${{ inputs.version }}" \
+            --output release-validation/release-manifest.json \
+            --source-repository "${SOURCE_REPOSITORY}" \
+            --source-ref "${{ inputs.source_ref }}" \
+            --source-sha "${{ inputs.source_sha }}" \
+            --release-repository "${{ github.repository }}" \
+            --release-tag "${{ inputs.release_tag }}" \
+            --workflow-run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          echo "source_repository=${SOURCE_REPOSITORY}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify validation artifacts
+        run: |
+          test -f release-validation/sbom.cyclonedx.json
+          test -f release-validation/release-manifest.json
+
+      - name: Upload validation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-validation
+          path: |
+            release-validation/sbom.cyclonedx.json
+            release-validation/release-manifest.json
+          if-no-files-found: error
+
+  package-windows:
+    name: Package Windows Release
+    runs-on: windows-latest
+    needs: validate
+    environment: production-release
+    outputs:
+      packaging_mode: ${{ steps.signing-mode.outputs.packaging_mode }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release repository
+        uses: actions/checkout@v4
+
+      - name: Checkout private source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source_owner }}/${{ inputs.source_repo }}
+          ref: ${{ inputs.source_sha }}
+          token: ${{ secrets.SOURCE_REPO_READ_TOKEN }}
+          path: source
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+
+      - name: Verify Forge fuse dependency alignment
+        working-directory: source
+        run: node scripts/validate-forge-fuse-versions.cjs
+
+      - name: Install dependencies
+        working-directory: source
+        run: npm ci
+
+      - name: Select Windows packaging mode
+        id: signing-mode
+        shell: bash
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+        run: |
+          if [ -n "${WIN_CSC_LINK}" ]; then
+            echo "packaging_mode=signed" >> "${GITHUB_OUTPUT}"
+            echo "script=dist:win:signed" >> "${GITHUB_OUTPUT}"
+          else
+            echo "packaging_mode=unsigned" >> "${GITHUB_OUTPUT}"
+            echo "script=dist:win:unsigned" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Build Windows artifacts
+        working-directory: source
+        env:
+          INTERVIEWGPT_UPDATE_BASE_URL: ${{ env.PUBLIC_UPDATE_BASE_URL }}
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: npm run ${{ steps.signing-mode.outputs.script }}
+
+      - name: Generate portable update manifest
+        working-directory: source
+        shell: bash
+        run: |
+          test -f .generated/release/latest.yml
+          node ../.github/scripts/write-portable-update-manifest.cjs \
+            --release-dir .generated/release \
+            --version "${{ inputs.version }}" \
+            --release-repository "${{ github.repository }}" \
+            --release-tag "${{ inputs.release_tag }}" \
+            --output .generated/release/portable-win.json
+          test -f .generated/release/portable-win.json
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: |
+            source/.generated/release/*.exe
+            source/.generated/release/*.blockmap
+            source/.generated/release/latest.yml
+            source/.generated/release/portable-win.json
+          if-no-files-found: error
+
+  package-macos:
+    name: Package macOS Release
+    runs-on: macos-latest
+    needs: validate
+    environment: production-release
+    outputs:
+      packaging_mode: ${{ steps.signing-mode.outputs.packaging_mode }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release repository
+        uses: actions/checkout@v4
+
+      - name: Checkout private source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source_owner }}/${{ inputs.source_repo }}
+          ref: ${{ inputs.source_sha }}
+          token: ${{ secrets.SOURCE_REPO_READ_TOKEN }}
+          path: source
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+
+      - name: Verify Forge fuse dependency alignment
+        working-directory: source
+        run: node scripts/validate-forge-fuse-versions.cjs
+
+      - name: Install dependencies
+        working-directory: source
+        run: npm ci
+
+      - name: Select macOS packaging mode
+        id: signing-mode
+        shell: bash
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+        run: |
+          if [ -n "${MAC_CSC_LINK}" ]; then
+            echo "packaging_mode=signed" >> "${GITHUB_OUTPUT}"
+            echo "script=dist:mac:signed" >> "${GITHUB_OUTPUT}"
+          else
+            echo "packaging_mode=unsigned" >> "${GITHUB_OUTPUT}"
+            echo "script=dist:mac:unsigned" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Build macOS artifacts
+        working-directory: source
+        env:
+          INTERVIEWGPT_UPDATE_BASE_URL: ${{ env.PUBLIC_UPDATE_BASE_URL }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: npm run ${{ steps.signing-mode.outputs.script }}
+
+      - name: Verify macOS update metadata
+        working-directory: source
+        run: test -f .generated/release/latest-mac.yml
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: |
+            source/.generated/release/*.dmg
+            source/.generated/release/*.zip
+            source/.generated/release/*.blockmap
+            source/.generated/release/latest-mac.yml
+          if-no-files-found: error
+
+  publish:
+    name: Publish Public Release
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+      - package-windows
+      - package-macos
+    environment: production-release
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    steps:
+      - name: Download validation artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-validation
+          path: release-assets/validation
+
+      - name: Verify downloaded validation artifacts
+        run: |
+          test -f release-assets/validation/sbom.cyclonedx.json
+          test -f release-assets/validation/release-manifest.json
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: release-assets/windows
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-release
+          path: release-assets/macos
+
+      - name: Flatten release assets
+        run: |
+          mkdir -p release-assets/flat-assets
+          find release-assets/windows release-assets/macos release-assets/validation -type f -exec cp {} release-assets/flat-assets/ \;
+
+      - name: Generate release checksums
+        run: |
+          cd release-assets/flat-assets
+          find . -type f ! -name 'checksums.sha256' -print0 | sort -z | xargs -0 sha256sum > checksums.sha256
+
+      - name: Write release notes
+        run: |
+          cat > release-notes.md <<'EOF'
+          InterviewGPT ${{ inputs.version }}
+
+          Release repository: `${{ github.repository }}`
+          Source repository: `${{ needs.validate.outputs.source_repository }}`
+          Source ref: `${{ inputs.source_ref }}`
+          Source SHA: `${{ inputs.source_sha }}`
+
+          Included assets:
+          - Windows NSIS installer
+          - Windows portable executable
+          - Windows installer update channel metadata (`latest.yml`)
+          - Windows portable update manifest (`portable-win.json`)
+          - macOS DMG installer
+          - macOS ZIP portable build
+          - macOS update channel metadata (`latest-mac.yml`)
+          - SHA-256 checksums
+          - CycloneDX SBOM
+          - Release manifest
+
+          Verification:
+          - Validate `checksums.sha256`
+          - Verify GitHub artifact attestations with `gh attestation verify`
+          - Compare the release manifest to the expected private source SHA
+          - Confirm `latest.yml`, `latest-mac.yml`, and `portable-win.json` are present in the release
+          - Windows packaging mode: `${{ needs.package-windows.outputs.packaging_mode }}`
+          - macOS packaging mode: `${{ needs.package-macos.outputs.packaging_mode }}`
+          EOF
+
+      - name: Generate artifact attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: 'release-assets/flat-assets/**/*'
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s globstar nullglob
+          RELEASE_REPO="${{ github.repository }}"
+          files=(
+            release-assets/flat-assets/*
+          )
+
+          if gh release view "${{ inputs.release_tag }}" -R "${RELEASE_REPO}" >/dev/null 2>&1; then
+            gh release upload "${{ inputs.release_tag }}" "${files[@]}" --clobber -R "${RELEASE_REPO}"
+            gh release edit "${{ inputs.release_tag }}" --notes-file release-notes.md -R "${RELEASE_REPO}"
+          else
+            gh release create "${{ inputs.release_tag }}" "${files[@]}" \
+              -R "${RELEASE_REPO}" \
+              --title "InterviewGPT ${{ inputs.version }}" \
+              --notes-file release-notes.md
+          fi
+
+      - name: Write workflow summary
+        run: |
+          {
+            echo "## Release published"
+            echo ""
+            echo "- Tag: \`${{ inputs.release_tag }}\`"
+            echo "- Version: \`${{ inputs.version }}\`"
+            echo "- Source repository: \`${{ needs.validate.outputs.source_repository }}\`"
+            echo "- Source SHA: \`${{ inputs.source_sha }}\`"
+            echo "- Public update base URL: \`${{ env.PUBLIC_UPDATE_BASE_URL }}\`"
+            echo "- Windows packaging mode: \`${{ needs.package-windows.outputs.packaging_mode }}\`"
+            echo "- macOS packaging mode: \`${{ needs.package-macos.outputs.packaging_mode }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
