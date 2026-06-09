@@ -188,23 +188,14 @@ jobs:
       - name: Select Windows packaging mode
         id: signing-mode
         shell: bash
-        env:
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
         run: |
-          if [ -n "${WIN_CSC_LINK}" ]; then
-            echo "packaging_mode=signed" >> "${GITHUB_OUTPUT}"
-            echo "script=dist:win:signed" >> "${GITHUB_OUTPUT}"
-          else
-            echo "packaging_mode=unsigned" >> "${GITHUB_OUTPUT}"
-            echo "script=dist:win:unsigned" >> "${GITHUB_OUTPUT}"
-          fi
+          echo "packaging_mode=unsigned" >> "${GITHUB_OUTPUT}"
+          echo "script=dist:win:unsigned" >> "${GITHUB_OUTPUT}"
 
       - name: Build Windows artifacts
         working-directory: source
         env:
           INTERVIEWGPT_UPDATE_BASE_URL: ${{ env.PUBLIC_UPDATE_BASE_URL }}
-          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: npm run ${{ steps.signing-mode.outputs.script }}
 
       - name: Generate portable update manifest

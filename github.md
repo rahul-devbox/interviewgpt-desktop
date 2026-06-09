@@ -54,14 +54,7 @@ Recommended token scope:
 - `Contents: Read-only`
 - `Metadata: Read`
 
-## Optional Signing Secrets
-
-These are optional. If they are missing, unsigned builds still proceed.
-
-Windows signing:
-
-- `WIN_CSC_LINK`
-- `WIN_CSC_KEY_PASSWORD`
+## Optional macOS Signing Secrets
 
 macOS signing:
 
@@ -73,6 +66,8 @@ macOS notarization:
 - `APPLE_API_KEY`
 - `APPLE_API_KEY_ID`
 - `APPLE_API_ISSUER`
+
+Windows releases are intentionally unsigned and do not require signing secrets. Windows auto-update supports unsigned artifacts, but Smart App Control may block them on affected Windows devices.
 
 ## Recommended Environment
 

@@ -76,13 +76,12 @@ Example:
 
 ## Signing Model
 
-Signing is conditional:
+Windows releases are built unsigned. Windows auto-update supports unsigned artifacts, but Windows Smart App Control may block unsigned applications.
 
-- Windows signs when `WIN_CSC_LINK` is configured
+macOS signing is conditional:
+
 - macOS signs when `MAC_CSC_LINK` is configured
-- unsigned builds still complete when signing material is absent
-
-This keeps the release pipeline usable in development and early-stage distribution while still supporting proper signed releases when certificates are available.
+- unsigned macOS builds still complete when signing material is absent
 
 ## Security Summary
 

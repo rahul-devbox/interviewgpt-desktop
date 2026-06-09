@@ -72,21 +72,21 @@ After the release is published:
    - `latest.yml`
    - `latest-mac.yml`
    - `portable-win.json`
-6. Install and launch the Windows installer build.
-7. Launch the Windows portable build.
-8. Verify the app UI reports the same version as the release.
+6. Confirm the release notes report `Windows packaging mode: unsigned`.
+7. Install and launch the Windows installer build.
+8. Launch the Windows portable build.
+9. Verify the app UI reports the same version as the release.
 
 ## Signing Behavior
 
 The public workflow behaves as follows:
 
-- if `WIN_CSC_LINK` exists, Windows artifacts are signed
-- if `WIN_CSC_LINK` is missing, Windows artifacts are built unsigned
+- Windows artifacts are built unsigned
 - if `MAC_CSC_LINK` exists, macOS artifacts are signed
 - if `MAC_CSC_LINK` is missing, macOS artifacts are built unsigned
 - notarization only happens when Apple credentials are configured
 
-Unsigned builds are valid for internal use and development distribution, but macOS auto-update requires a signed app.
+Windows auto-update supports unsigned artifacts, but Windows Smart App Control may block an unsigned installer, portable executable, or installed app. There is no application-side bypass for that operating-system policy. Affected users must disable Smart App Control or use a signed build.
 
 ## Rollback Guidance
 

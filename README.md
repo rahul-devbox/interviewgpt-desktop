@@ -71,7 +71,7 @@ This repository:
 
 1. checks out the exact approved private commit
 2. builds release artifacts
-3. signs artifacts if signing material is available
+3. builds unsigned Windows artifacts and signs macOS artifacts when configured
 4. publishes only binaries and release metadata
 
 ## Related Documentation
