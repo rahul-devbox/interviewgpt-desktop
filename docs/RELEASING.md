@@ -2,7 +2,7 @@
 
 This is the operator runbook for publishing a desktop release through the dual-repository workflow.
 
-Current version in this workspace: `3.0.0`
+Use the version from the private source repository's `package.json`.
 
 ## Release Preconditions
 
@@ -26,24 +26,17 @@ If they do not match, the workflow fails by design.
 ## Standard Release Procedure
 
 1. In `app-interviewgpt`, confirm the target version in `package.json`.
-2. Run the local validation path if needed:
+2. Run the local validation path if needed. Signed builds require `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD`; local development can use `.tools/local/certificate.pfx`:
 
 ```bash
 npm run check
-npm run dist:win:unsigned
+npm run dist:win:signed
 ```
 
 3. Push the approved release commit to `main`.
-4. Create and push the matching annotated tag:
-
-```bash
-git tag -a v3.0.0 -m "SysCore 3.0.0"
-git push origin v3.0.0
-```
-
-5. Wait for the private workflow to complete validation and dispatch the public workflow.
-6. Review and approve the `production-release` environment in `interviewgpt-desktop` if approval is required.
-7. Wait for public packaging and release publication to finish.
+4. Wait for the private workflow to bump the patch version, tag it, and dispatch the public workflow.
+5. Review and approve the `production-release` environment in `interviewgpt-desktop` if approval is required.
+6. Wait for public packaging and release publication to finish.
 
 ## Expected Public Release Assets
 
@@ -72,7 +65,7 @@ After the release is published:
    - `latest.yml`
    - `latest-mac.yml`
    - `portable-win.json`
-6. Confirm the release notes report `Windows packaging mode: unsigned`.
+6. Confirm the release notes report `Windows packaging mode: signed`.
 7. Install and launch the Windows installer build.
 8. Launch the Windows portable build.
 9. Verify the app UI reports the same version as the release.
@@ -81,12 +74,14 @@ After the release is published:
 
 The public workflow behaves as follows:
 
-- Windows artifacts are built unsigned
+- Windows artifacts are signed and must match the configured PFX
 - if `MAC_CSC_LINK` exists, macOS artifacts are signed
 - if `MAC_CSC_LINK` is missing, macOS artifacts are built unsigned
 - notarization only happens when Apple credentials are configured
 
-Windows auto-update supports unsigned artifacts, but Windows Smart App Control may block an unsigned installer, portable executable, or installed app. There is no application-side bypass for that operating-system policy. Affected users must disable Smart App Control or use a signed build.
+A self-signed certificate does not establish Windows publisher trust or bypass Smart App Control. Use a publicly trusted certificate for production distribution. While a self-signed certificate is configured, updater publisher verification remains disabled and the updater relies on the SHA-512 value in GitHub-hosted release metadata.
+
+The first release that disables publisher verification is a bridge release. Clients that already embedded the old publisher check must install that release manually. Automatic updates resume for subsequent releases.
 
 ## Rollback Guidance
 

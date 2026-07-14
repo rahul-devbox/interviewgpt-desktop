@@ -189,13 +189,29 @@ jobs:
         shell: pwsh
         env:
           CERT_BASE64: ${{ secrets.WIN_CSC_LINK_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
-          if ($env:CERT_BASE64) {
-            $bytes = [System.Convert]::FromBase64String($env:CERT_BASE64)
-            [System.IO.File]::WriteAllBytes("source/certificate.pfx", $bytes)
-          } else {
-            Write-Warning "WIN_CSC_LINK_BASE64 secret is not set!"
+          if (-not $env:CERT_BASE64) {
+            throw "WIN_CSC_LINK_BASE64 is required for a Windows release."
           }
+          if (-not $env:CERT_PASSWORD) {
+            throw "WIN_CSC_KEY_PASSWORD is required for a Windows release."
+          }
+
+          $bytes = [System.Convert]::FromBase64String($env:CERT_BASE64)
+          [System.IO.File]::WriteAllBytes("source/certificate.pfx", $bytes)
+          $password = ConvertTo-SecureString $env:CERT_PASSWORD -AsPlainText -Force
+          $certificate = Get-PfxCertificate -FilePath "source/certificate.pfx" -Password $password
+          $codeSigningOid = "1.3.6.1.5.5.7.3.3"
+
+          if ($certificate.NotBefore -gt (Get-Date) -or $certificate.NotAfter -lt (Get-Date)) {
+            throw "The Windows signing certificate is not currently valid."
+          }
+          if ($certificate.EnhancedKeyUsageList.ObjectId.Value -notcontains $codeSigningOid) {
+            throw "The supplied PFX is not valid for code signing."
+          }
+
+          "WINDOWS_CERT_THUMBPRINT=$($certificate.Thumbprint)" >> $env:GITHUB_ENV
 
       - name: Select Windows packaging mode
         id: signing-mode
@@ -212,6 +228,36 @@ jobs:
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
           INTERVIEWGPT_REQUIRE_CODE_SIGNING: true
         run: npm run ${{ steps.signing-mode.outputs.script }}
+
+      - name: Verify Windows signatures and updater policy
+        working-directory: source
+        shell: pwsh
+        run: |
+          $executables = Get-ChildItem ".generated/release/*.exe"
+          if ($executables.Count -lt 2) {
+            throw "Expected signed installer and portable Windows executables."
+          }
+
+          foreach ($executable in $executables) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $executable.FullName
+            if (-not $signature.SignerCertificate) {
+              throw "$($executable.Name) is not Authenticode signed."
+            }
+            if ($signature.SignerCertificate.Thumbprint -ne $env:WINDOWS_CERT_THUMBPRINT) {
+              throw "$($executable.Name) was signed by an unexpected certificate."
+            }
+            if ($signature.Status -notin @('Valid', 'UnknownError')) {
+              throw "$($executable.Name) has invalid Authenticode status: $($signature.Status)."
+            }
+            if ($signature.Status -eq 'UnknownError' -and $signature.SignerCertificate.Subject -ne $signature.SignerCertificate.Issuer) {
+              throw "$($executable.Name) failed Authenticode validation: $($signature.StatusMessage)"
+            }
+          }
+
+          $updateConfig = Get-Content ".generated/release/latest.yml" -Raw
+          if ($updateConfig -match '(?m)^publisherName:') {
+            throw "latest.yml must not enable trusted-publisher verification for a self-signed certificate."
+          }
 
       - name: Generate portable update manifest
         working-directory: source

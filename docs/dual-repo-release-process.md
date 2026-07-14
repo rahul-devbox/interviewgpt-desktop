@@ -76,7 +76,7 @@ Example:
 
 ## Signing Model
 
-Windows releases are built unsigned. Windows auto-update supports unsigned artifacts, but Windows Smart App Control may block unsigned applications.
+Windows releases are Authenticode signed with the certificate supplied by the protected release environment. The workflow verifies the signer thumbprint on every generated EXE before publication. A self-signed certificate provides artifact identity but not public Windows trust; production releases should use a publicly trusted code-signing certificate.
 
 macOS signing is conditional:
 

@@ -17,7 +17,7 @@ This repository publishes:
 - CycloneDX SBOM files
 - release manifest metadata
 
-Current release line in this workspace: `3.0.0`
+The current release version is published on the repository's Releases page.
 
 ## What This Repository Must Not Contain
 
@@ -71,7 +71,7 @@ This repository:
 
 1. checks out the exact approved private commit
 2. builds release artifacts
-3. builds unsigned Windows artifacts and signs macOS artifacts when configured
+3. builds signed Windows artifacts and signs macOS artifacts when configured
 4. publishes only binaries and release metadata
 
 ## Related Documentation

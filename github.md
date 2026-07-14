@@ -54,6 +54,15 @@ Recommended token scope:
 - `Contents: Read-only`
 - `Metadata: Read`
 
+## Windows Signing Secrets
+
+Windows releases require these `production-release` environment secrets:
+
+- `WIN_CSC_LINK_BASE64`
+- `WIN_CSC_KEY_PASSWORD`
+
+`WIN_CSC_LINK_BASE64` is the base64-encoded PFX. The workflow verifies that every Windows EXE is signed by this exact certificate. A publicly trusted code-signing certificate is required before enabling electron-updater publisher verification.
+
 ## Optional macOS Signing Secrets
 
 macOS signing:
@@ -66,8 +75,6 @@ macOS notarization:
 - `APPLE_API_KEY`
 - `APPLE_API_KEY_ID`
 - `APPLE_API_ISSUER`
-
-Windows releases are intentionally unsigned and do not require signing secrets. Windows auto-update supports unsigned artifacts, but Smart App Control may block them on affected Windows devices.
 
 ## Recommended Environment
 
@@ -85,25 +92,17 @@ Recommended settings:
 
 The workflows enforce exact version alignment:
 
-- package version: `3.0.0`
-- release tag: `v3.0.0`
+- package version: `3.5.16`
+- release tag: `v3.5.16`
 
 The tag must always be `v<package.json version>`.
 
 ## Normal Release Flow
 
-1. Update `app-interviewgpt/package.json`
-2. Merge the approved release commit to `main`
-3. Create and push the matching tag:
-
-```bash
-git tag -a v3.0.0 -m "SysCore 3.0.0"
-git push origin v3.0.0
-```
-
-4. The private workflow validates source and dispatches the public workflow.
-5. The public workflow checks out the approved private commit SHA.
-6. The public workflow builds and publishes release artifacts.
+1. Merge the approved change to `app-interviewgpt/main`.
+2. The private workflow bumps the patch version and pushes the matching tag.
+3. The private workflow dispatches this repository with the exact tagged source SHA.
+4. The public workflow validates, signs, and publishes the artifacts.
 
 ## Security Rule
 
