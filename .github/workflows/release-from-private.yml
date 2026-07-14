@@ -207,7 +207,22 @@ jobs:
           if ($certificate.NotBefore -gt (Get-Date) -or $certificate.NotAfter -lt (Get-Date)) {
             throw "The Windows signing certificate is not currently valid."
           }
-          if ($certificate.EnhancedKeyUsageList.ObjectId.Value -notcontains $codeSigningOid) {
+
+          $hasCodeSigningEku = $false
+          foreach ($extension in $certificate.Extensions) {
+            if ($extension.Oid.Value -ne "2.5.29.37") {
+              continue
+            }
+
+            foreach ($usage in $extension.EnhancedKeyUsages) {
+              if ($usage.Value -eq $codeSigningOid) {
+                $hasCodeSigningEku = $true
+                break
+              }
+            }
+          }
+
+          if (-not $hasCodeSigningEku) {
             throw "The supplied PFX is not valid for code signing."
           }
 
