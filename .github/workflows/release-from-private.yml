@@ -64,9 +64,9 @@ jobs:
           cache: npm
           cache-dependency-path: source/package-lock.json
 
-      - name: Verify Forge fuse dependency alignment
+      - name: Verify protected dependency pins
         working-directory: source
-        run: node scripts/validate-forge-fuse-versions.cjs
+        run: npm run audit:dependency-pins
 
       - name: Verify requested version matches package.json
         working-directory: source
@@ -177,9 +177,9 @@ jobs:
           cache: npm
           cache-dependency-path: source/package-lock.json
 
-      - name: Verify Forge fuse dependency alignment
+      - name: Verify protected dependency pins
         working-directory: source
-        run: node scripts/validate-forge-fuse-versions.cjs
+        run: npm run audit:dependency-pins
 
       - name: Install dependencies
         working-directory: source
@@ -326,9 +326,9 @@ jobs:
           cache: npm
           cache-dependency-path: source/package-lock.json
 
-      - name: Verify Forge fuse dependency alignment
+      - name: Verify protected dependency pins
         working-directory: source
-        run: node scripts/validate-forge-fuse-versions.cjs
+        run: npm run audit:dependency-pins
 
       - name: Install dependencies
         working-directory: source
