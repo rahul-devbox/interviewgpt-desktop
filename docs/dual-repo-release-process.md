@@ -1,6 +1,10 @@
-# Dual-Repo Release Architecture
+# InterviewGPT Dual-Repository Release Architecture
 
-SysCore Desktop uses a source-private, artifacts-public release model.
+InterviewGPT Desktop, distributed as SysCore, uses a source-private, artifacts-public release model.
+
+- Product website: [https://www.interviewgpt.in](https://www.interviewgpt.in)
+- Website downloads: [https://www.interviewgpt.in/download](https://www.interviewgpt.in/download)
+- Public releases: [interviewgpt-desktop/releases](https://github.com/rahul-devbox/interviewgpt-desktop/releases)
 
 ## Repository Split
 
@@ -44,7 +48,9 @@ The desktop app is responsible for UI and client execution only. Sensitive opera
 3. The private workflow dispatches `interviewgpt-desktop`.
 4. The public workflow checks out the exact private source SHA.
 5. The public workflow builds release artifacts and metadata.
-6. The public workflow publishes the GitHub release.
+6. The public workflow signs Windows artifacts, verifies platform metadata, and generates attestations.
+7. The public workflow publishes the GitHub release.
+8. Users download through the InterviewGPT website or directly from GitHub Releases.
 
 ## Build Outputs
 
@@ -60,6 +66,7 @@ The current desktop release flow produces:
 - `checksums.sha256`
 - `sbom.cyclonedx.json`
 - `release-manifest.json`
+- GitHub artifact attestations
 
 ## Version Control Rule
 
@@ -71,16 +78,17 @@ v<package.json version>
 
 Example:
 
-- package version: `3.0.0`
-- release tag: `v3.0.0`
+- package version: `<version>`
+- release tag: `v<version>`
 
 ## Signing Model
 
 Windows releases are Authenticode signed with the certificate supplied by the protected release environment. The workflow verifies the signer thumbprint on every generated EXE before publication. A self-signed certificate provides artifact identity but not public Windows trust; production releases should use a publicly trusted code-signing certificate.
 
-macOS signing is conditional:
+macOS signing and notarization are conditional:
 
 - macOS signs when `MAC_CSC_LINK` is configured
+- macOS notarizes when valid Apple API credentials are configured
 - unsigned macOS builds still complete when signing material is absent
 
 ## Security Summary

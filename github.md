@@ -1,109 +1,96 @@
-# GitHub Setup For Desktop Releases
+# GitHub Configuration for InterviewGPT Desktop Releases
 
-This document describes the GitHub configuration required for the private-to-public SysCore desktop release flow.
+This document defines the GitHub configuration for publishing the InterviewGPT desktop application, distributed as SysCore, from a private source repository to this public release repository.
 
-Repositories:
+- Product website: [https://www.interviewgpt.in](https://www.interviewgpt.in)
+- Private source repository: `rahul-devbox/app-interviewgpt`
+- Public release repository: `rahul-devbox/interviewgpt-desktop`
 
-- Private source repo: `app-interviewgpt`
-- Public release repo: `interviewgpt-desktop`
+## Private source repository
 
-## Private Repository Setup
+Configure these Actions repository variables in `app-interviewgpt`:
 
-Repository: `app-interviewgpt`
+| Variable                       | Value                      |
+| ------------------------------ | -------------------------- |
+| `PUBLIC_RELEASE_REPO_OWNER`    | `rahul-devbox`             |
+| `PUBLIC_RELEASE_REPO_NAME`     | `interviewgpt-desktop`     |
+| `PUBLIC_RELEASE_WORKFLOW_FILE` | `release-from-private.yml` |
+| `PUBLIC_RELEASE_WORKFLOW_REF`  | `main`                     |
 
-Create these repository variables:
-
-- `PUBLIC_RELEASE_REPO_OWNER`
-  Value: the GitHub owner or organization for `interviewgpt-desktop`
-- `PUBLIC_RELEASE_REPO_NAME`
-  Value: `interviewgpt-desktop`
-- `PUBLIC_RELEASE_WORKFLOW_FILE`
-  Value: `release-from-private.yml`
-- `PUBLIC_RELEASE_WORKFLOW_REF`
-  Value: `main`
-
-Create this repository secret:
+Configure this Actions secret:
 
 - `PUBLIC_REPO_WORKFLOW_TOKEN`
 
-Recommended token scope:
+Use a fine-grained token limited to `interviewgpt-desktop` with Actions read/write, Contents read/write, and Metadata read access.
 
-- fine-grained PAT
-- repository access limited to `interviewgpt-desktop`
-- `Actions: Read and write`
-- `Contents: Read and write`
-- `Metadata: Read`
+## Public release repository
 
-## Public Repository Setup
+Configure this Actions repository variable in `interviewgpt-desktop`:
 
-Repository: `interviewgpt-desktop`
+| Variable                     | Value          |
+| ---------------------------- | -------------- |
+| `EXPECTED_SOURCE_REPO_OWNER` | `rahul-devbox` |
 
-Create this repository variable:
-
-- `EXPECTED_SOURCE_REPO_OWNER`
-  Value: the GitHub owner or organization for `app-interviewgpt`
-
-Create this repository secret:
+Configure this Actions secret:
 
 - `SOURCE_REPO_READ_TOKEN`
 
-Recommended token scope:
+Use a fine-grained token limited to `app-interviewgpt` with Contents read-only and Metadata read access.
 
-- fine-grained PAT
-- repository access limited to `app-interviewgpt`
-- `Contents: Read-only`
-- `Metadata: Read`
+## Release signing secrets
 
-## Windows Signing Secrets
-
-Windows releases require these `production-release` environment secrets:
+Windows production releases require:
 
 - `WIN_CSC_LINK_BASE64`
 - `WIN_CSC_KEY_PASSWORD`
 
-`WIN_CSC_LINK_BASE64` is the base64-encoded PFX. The workflow verifies that every Windows EXE is signed by this exact certificate. A publicly trusted code-signing certificate is required before enabling electron-updater publisher verification.
+`WIN_CSC_LINK_BASE64` contains the base64-encoded PFX. The workflow validates the certificate and verifies that every published Windows executable is signed by that exact certificate.
 
-## Optional macOS Signing Secrets
-
-macOS signing:
+Optional macOS signing and notarization use:
 
 - `MAC_CSC_LINK`
 - `MAC_CSC_KEY_PASSWORD`
-
-macOS notarization:
-
 - `APPLE_API_KEY`
 - `APPLE_API_KEY_ID`
 - `APPLE_API_ISSUER`
 
-## Recommended Environment
+Place signing credentials in the protected `production-release` environment whenever possible. Repository-level Actions secrets are also available to the current workflow, but environment secrets provide a clearer release boundary.
 
-Create a GitHub environment in `interviewgpt-desktop` named:
+## Recommended repository settings
 
-- `production-release`
+- Enable GitHub Actions.
+- Set default workflow token permissions to **Read repository contents and packages**.
+- Keep pull-request approval permission disabled for workflow tokens.
+- Create a `production-release` environment.
+- Restrict signing secrets to trusted release operators.
+- Add required reviewers to the production environment when manual release approval is desired.
+- Keep the repository homepage set to [https://www.interviewgpt.in](https://www.interviewgpt.in).
 
-Recommended settings:
+Individual workflows explicitly request the narrow write permissions needed for version commits, artifact attestations, and release publication.
 
-- require approval before jobs access environment secrets
-- restrict approvers
-- place signing secrets on the environment instead of plain repository secrets
+## Versioning contract
 
-## Versioning Rules
+The release workflow requires exact alignment:
 
-The workflows enforce exact version alignment:
+```text
+package version: <version>
+release tag:     v<version>
+```
 
-- package version: `3.5.16`
-- release tag: `v3.5.16`
+The private automation bumps the patch version, pushes the matching tag, and dispatches the public workflow with the exact tagged source SHA.
 
-The tag must always be `v<package.json version>`.
+## Normal release flow
 
-## Normal Release Flow
+1. Merge or push an approved change to `app-interviewgpt/main`.
+2. The private workflow creates the next patch version and matching tag.
+3. The private workflow dispatches `release-from-private.yml` in this repository.
+4. The public workflow validates the requested version, repository allowlist, dependency pins, source quality, and release metadata.
+5. Windows and macOS jobs build and upload platform artifacts.
+6. The publish job generates checksums, an SBOM, a release manifest, artifact attestations, and the public GitHub release.
+7. Users can download from [InterviewGPT](https://www.interviewgpt.in/download) or [GitHub Releases](https://github.com/rahul-devbox/interviewgpt-desktop/releases).
 
-1. Merge the approved change to `app-interviewgpt/main`.
-2. The private workflow bumps the patch version and pushes the matching tag.
-3. The private workflow dispatches this repository with the exact tagged source SHA.
-4. The public workflow validates, signs, and publishes the artifacts.
+## Security rules
 
-## Security Rule
+Never commit source code, personal access tokens, signing certificates, backend credentials, user data, resumes, or interview transcripts to `interviewgpt-desktop`.
 
-Do not commit source code, personal access tokens, or signing credentials to `interviewgpt-desktop`.
+Review secret access, token expiration, environment protection, and successful release attestations regularly.

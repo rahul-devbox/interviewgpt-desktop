@@ -1,51 +1,62 @@
-# Releasing SysCore Desktop
+# Releasing InterviewGPT Desktop
 
-This is the operator runbook for publishing a desktop release through the dual-repository workflow.
+This runbook covers production releases of the InterviewGPT desktop application, distributed as SysCore, through the private-source/public-artifacts workflow.
 
-Use the version from the private source repository's `package.json`.
+- Website downloads: [https://www.interviewgpt.in/download](https://www.interviewgpt.in/download)
+- Public GitHub releases: [interviewgpt-desktop/releases](https://github.com/rahul-devbox/interviewgpt-desktop/releases)
 
-## Release Preconditions
+## Release prerequisites
 
-Before cutting a release:
+Before pushing an approved source change:
 
-- `app-interviewgpt/package.json` is updated to the intended version
-- the release commit is merged to the private default branch
-- the private validation workflow is passing
-- required repository variables and secrets are configured
-- the public release environment is ready for approval
+- `app-interviewgpt/main` is synchronized with the remote branch.
+- `npm run check` passes in the private source repository.
+- protected dependency versions match the dependency-pin policy.
+- required repository variables and access tokens are configured.
+- the Windows signing certificate is valid and available to the release workflow.
+- the `production-release` environment is configured.
+- Apple signing and notarization credentials are configured when a trusted macOS release is required.
 
-## Version Rule
+## Version rule
 
-The release tag must match the package version exactly:
+The package version and release tag must align exactly:
 
-- package version: `3.0.0`
-- git tag: `v3.0.0`
-
-If they do not match, the workflow fails by design.
-
-## Standard Release Procedure
-
-1. In `app-interviewgpt`, confirm the target version in `package.json`.
-2. Run the local validation path if needed. Signed builds require `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD`; local development can use `.tools/local/certificate.pfx`:
-
-```bash
-npm run check
-npm run dist:win:signed
+```text
+package version: <version>
+git tag:         v<version>
 ```
 
-3. Push the approved release commit to `main`.
-4. Wait for the private workflow to bump the patch version, tag it, and dispatch the public workflow.
-5. Review and approve the `production-release` environment in `interviewgpt-desktop` if approval is required.
-6. Wait for public packaging and release publication to finish.
+The private workflow automatically creates the next patch version and matching tag. Do not manually reuse or move an existing release tag.
 
-## Expected Public Release Assets
+## Standard release procedure
 
-Each release should contain:
+1. Run the full private-source validation:
+
+   ```bash
+   npm run check
+   ```
+
+2. Push the approved source commit to `app-interviewgpt/main`.
+3. Confirm the private **Auto Release on Push to Main** workflow:
+   - bumps the patch version;
+   - pushes the version commit and tag;
+   - dispatches the public release workflow with the exact source SHA.
+4. Confirm the public **Release From Private Source** workflow completes:
+   - source validation;
+   - Windows packaging and signature verification;
+   - macOS packaging and update-metadata verification;
+   - public release publication.
+5. Review the published release and confirm that the website download path points users to the current version.
+
+## Expected release assets
+
+Each public release should include:
 
 - `SysCore-Setup-<version>.exe`
 - `SysCore-Portable-<version>.exe`
 - `SysCore-<version>-mac-universal.dmg`
 - `SysCore-<version>-mac-universal.zip`
+- Windows and macOS blockmaps
 - `latest.yml`
 - `latest-mac.yml`
 - `portable-win.json`
@@ -53,46 +64,50 @@ Each release should contain:
 - `sbom.cyclonedx.json`
 - `release-manifest.json`
 
-## Verification Checklist
+## Post-release verification
 
-After the release is published:
-
-1. Verify the public release tag and title.
-2. Verify the asset filenames match the release version.
-3. Verify `checksums.sha256`.
-4. Verify `release-manifest.json` references the intended private source SHA.
-5. Verify updater metadata exists:
+1. Verify the release is neither a draft nor a prerelease unless intended.
+2. Verify the tag, title, artifact filenames, and package version match.
+3. Verify every expected asset was uploaded.
+4. Validate `checksums.sha256` against downloaded binaries.
+5. Confirm `release-manifest.json` references the expected private source repository and exact source SHA.
+6. Confirm updater metadata is present:
    - `latest.yml`
    - `latest-mac.yml`
    - `portable-win.json`
-6. Confirm the release notes report `Windows packaging mode: signed`.
-7. Install and launch the Windows installer build.
-8. Launch the Windows portable build.
-9. Verify the app UI reports the same version as the release.
+7. Verify GitHub artifact attestations.
+8. Confirm the release notes report `Windows packaging mode: signed`.
+9. Confirm the reported macOS packaging mode matches the available Apple credentials.
+10. Install and launch the Windows installer and portable builds.
+11. Test the macOS package on the supported architecture and security configuration.
+12. Confirm the app reports the published version.
 
-## Signing Behavior
+## Signing behavior
 
-The public workflow behaves as follows:
+Windows artifacts are Authenticode signed with the configured PFX. The workflow verifies the signer thumbprint on every generated executable before publication.
 
-- Windows artifacts are signed and must match the configured PFX
-- if `MAC_CSC_LINK` exists, macOS artifacts are signed
-- if `MAC_CSC_LINK` is missing, macOS artifacts are built unsigned
-- notarization only happens when Apple credentials are configured
+A self-signed certificate provides artifact identity but does not establish public Windows publisher trust or bypass Smart App Control. Use a publicly trusted code-signing certificate for production distribution. While a self-signed certificate is configured, updater publisher verification remains disabled and the updater relies on the SHA-512 value in GitHub-hosted release metadata.
 
-A self-signed certificate does not establish Windows publisher trust or bypass Smart App Control. Use a publicly trusted certificate for production distribution. While a self-signed certificate is configured, updater publisher verification remains disabled and the updater relies on the SHA-512 value in GitHub-hosted release metadata.
+macOS behavior is credential-dependent:
 
-The first release that disables publisher verification is a bridge release. Clients that already embedded the old publisher check must install that release manually. Automatic updates resume for subsequent releases.
+- releases are signed when `MAC_CSC_LINK` is configured;
+- releases are notarized when valid Apple API credentials are configured;
+- the workflow can produce unsigned macOS artifacts when signing material is absent;
+- every release note records the selected macOS packaging mode.
 
-## Rollback Guidance
+## Rollback and recovery
 
 If a release is invalid:
 
-1. do not retag the same broken version
-2. mark the public release as draft or remove it
-3. fix the issue in `app-interviewgpt`
-4. cut a new version and publish a new tag
+1. stop promoting or linking to the affected release;
+2. do not retag the same version;
+3. mark the public release as a draft or remove it when appropriate;
+4. fix the issue in `app-interviewgpt`;
+5. publish a new patch version and tag;
+6. verify the replacement release before restoring website links.
 
-## Related Docs
+## Related documentation
 
-- [../github.md](../github.md)
-- [dual-repo-release-process.md](./dual-repo-release-process.md)
+- [GitHub configuration](../github.md)
+- [Dual-repository release architecture](./dual-repo-release-process.md)
+- [Public README](../README.md)
