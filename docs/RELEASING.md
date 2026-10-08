@@ -108,6 +108,6 @@ If a release is invalid:
 
 ## Related documentation
 
-- [GitHub configuration](../github.md)
+- [GitHub configuration](./github-configuration.md)
 - [Dual-repository release architecture](./dual-repo-release-process.md)
 - [Public README](../README.md)

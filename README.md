@@ -1,166 +1,194 @@
 <div align="center">
-  <a href="https://www.interviewgpt.in">
-    <img
-      src="./assets/interviewgpt-ai-interview-copilot.png"
-      alt="InterviewGPT AI interview copilot with live transcription, AI answers, and screen analysis"
-      width="100%"
-    />
-  </a>
 
-  <h1>InterviewGPT Desktop</h1>
+<a href="https://www.interviewgpt.in">
+  <img src="./assets/interviewgpt-ai-interview-assistant.jpg" alt="InterviewGPT AI interview assistant: real-time answers during a video call, invisible on screen share" width="100%" />
+</a>
 
-  <p><strong>Your AI copilot for interviews—live transcription, personalized answers, and screen analysis in one desktop app.</strong></p>
+# InterviewGPT Desktop
 
-  <p>
-    <a href="https://www.interviewgpt.in/download"><strong>Download from the website</strong></a>
-    ·
-    <a href="https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest"><strong>Download the latest GitHub release</strong></a>
-    ·
-    <a href="https://www.interviewgpt.in"><strong>Visit InterviewGPT</strong></a>
-  </p>
+**The AI interview assistant for Windows: real-time answers for interviews, meetings and sales calls, invisible on screen share.**
 
-  <p>
-    <a href="https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest">
-      <img alt="Latest InterviewGPT desktop release" src="https://img.shields.io/github/v/release/rahul-devbox/interviewgpt-desktop?display_name=tag&sort=semver&style=flat-square" />
-    </a>
-    <a href="https://github.com/rahul-devbox/interviewgpt-desktop/actions/workflows/release-from-private.yml">
-      <img alt="InterviewGPT desktop release status" src="https://img.shields.io/github/actions/workflow/status/rahul-devbox/interviewgpt-desktop/release-from-private.yml?style=flat-square&label=release" />
-    </a>
-    <a href="https://www.interviewgpt.in">
-      <img alt="InterviewGPT website" src="https://img.shields.io/badge/website-interviewgpt.in-5B4CF0?style=flat-square" />
-    </a>
-    <img alt="Platforms: Windows and macOS" src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS-2563EB?style=flat-square" />
-  </p>
+[![Latest release](https://img.shields.io/github/v/release/rahul-devbox/interviewgpt-desktop?display_name=tag&sort=semver&style=flat-square&label=latest)](https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest)
+[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows&logoColor=white)](https://www.interviewgpt.in/download)
+[![macOS beta](https://img.shields.io/badge/macOS-beta-6E6E73?style=flat-square&logo=apple&logoColor=white)](https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest)
+[![Website](https://img.shields.io/badge/website-interviewgpt.in-5B4CF0?style=flat-square)](https://www.interviewgpt.in)
+
+[**Download for Windows**](https://www.interviewgpt.in/download) · [All releases](https://github.com/rahul-devbox/interviewgpt-desktop/releases) · [Website](https://www.interviewgpt.in) · [Pricing](https://www.interviewgpt.in/pricing) · [Report a bug](https://github.com/rahul-devbox/interviewgpt-desktop/issues)
+
 </div>
 
-## AI interview assistance on your desktop
+---
 
-InterviewGPT is an AI interview copilot and desktop interview assistant for Windows and macOS. It works alongside meeting and assessment platforms to provide real-time transcription, context-aware AI answers, and visual analysis while you stay focused on the conversation.
+## What is InterviewGPT?
 
-The packaged desktop application is distributed as **SysCore**. This public repository is the official home for InterviewGPT desktop downloads, release notes, checksums, software bills of materials (SBOMs), and update metadata. The private application source code and service credentials are never published here.
+InterviewGPT is an AI interview assistant for Windows that gives real-time answers in interviews, meetings and sales calls, and stays invisible on screen share. It listens to both sides of the call, transcribes it, and suggests an answer based on your resume and the role while the conversation is still going.
+
+This repository is the **official home of the desktop app's public releases**: installers, release notes, checksums and update files. The app's source code is private and is never published here. The desktop app installs under the name **SysCore**.
 
 ## Features
 
-- **Live transcription** — follow interview questions in real time with noise-reduced speech recognition.
-- **Personalized AI answers** — receive concise suggestions informed by your resume, target role, and instructions.
-- **Screen analysis** — analyze coding problems, diagrams, slides, and other on-screen context.
-- **Technical interview support** — work through coding, data structures, algorithms, and system-design questions.
-- **Broad platform compatibility** — use InterviewGPT alongside Zoom, Google Meet, Microsoft Teams, coding platforms, and other interview tools.
-- **Discreet desktop workflow** — keep assistance available without interrupting the interview experience.
-- **Session history** — review transcripts and previous sessions after the interview.
-- **Windows and macOS releases** — choose an installer or portable package for your platform.
+| | Feature | What it does |
+|---|---|---|
+| 🎙️ | **Live transcription** | Both sides of the call as text, in real time, with or without headphones |
+| ✨ | **AI Answer** | Answer suggestions written from your resume, the role and your instructions |
+| 🖥️ | **Analyze Screen** | Reads a coding problem, diagram or slide on your screen and answers it |
+| 💬 | **Chat with AI** | Ask follow-up questions and attach screenshots |
+| 🎛️ | **Answer styles** | Full answer, answer + key points, or key points only; natural, confident or formal tone |
+| 🫥 | **Invisible on screen share** | Windows keeps the app out of screen share, recordings and screenshots on supported setups |
+| 📱 | **Phone companion** | See answers on your phone during a desktop session |
+| 🌐 | **Free Invisible Browser** | ChatGPT, Claude and Gemini in a window that screen share can't see |
+| 🗂️ | **Session history** | Transcripts of past sessions, saved to your account |
 
-Learn more about the product at [interviewgpt.in](https://www.interviewgpt.in).
+Works with **Zoom, Google Meet, Microsoft Teams, Webex, Slack, Discord** and other call apps: it works at the system level, so the meeting app doesn't matter.
 
-## Download InterviewGPT
+## Download
 
-You can download InterviewGPT from either official location:
+| Platform | Status | Recommended | Alternative |
+|---|---|---|---|
+| **Windows 10 / 11 (64-bit)** | ✅ Stable | `SysCore-Setup-<version>.exe` (installer, updates automatically) | `SysCore-Portable-<version>.exe` (no install, good for restricted PCs) |
+| **macOS (Intel and Apple silicon)** | 🧪 **Beta** | `SysCore-<version>-mac-universal.dmg` | `SysCore-<version>-mac-universal.zip` |
 
-1. **Website:** [interviewgpt.in/download](https://www.interviewgpt.in/download)
-2. **GitHub:** [Latest InterviewGPT desktop release](https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest)
+👉 **Easiest:** download from [interviewgpt.in/download](https://www.interviewgpt.in/download), which always gives you the latest Windows version.
+👉 **All files and older versions:** [GitHub Releases](https://github.com/rahul-devbox/interviewgpt-desktop/releases).
 
-| Platform        | Recommended download                  | Alternative                           |
-| --------------- | ------------------------------------- | ------------------------------------- |
-| Windows 64-bit  | `SysCore-Setup-<version>.exe`         | `SysCore-Portable-<version>.exe`      |
-| macOS Universal | `SysCore-<version>-mac-universal.dmg` | `SysCore-<version>-mac-universal.zip` |
+## Install on Windows
 
-Every GitHub release also contains updater metadata, SHA-256 checksums, a CycloneDX SBOM, and a release manifest that identifies the exact approved source revision.
+1. Download `SysCore-Setup-<version>.exe` from the [download page](https://www.interviewgpt.in/download) or the [latest release](https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest).
+2. Run the file.
+3. **Windows may show a blue "Windows protected your PC" warning.** The app is signed with our own (self-signed) certificate, which Windows SmartScreen doesn't recognise yet. Click **More info → Run anyway** to continue.
+4. Follow the installer, then open **SysCore** and sign in with your InterviewGPT account.
 
-## Installation
+Prefer no installation? Download `SysCore-Portable-<version>.exe` and run it directly (you'll see the same warning; click **More info → Run anyway**).
 
-### Windows
+> Want to be sure the file is genuine? Compare it with `checksums.sha256` from the same release (see [Verify a download](#verify-a-download)).
 
-1. Open the [InterviewGPT download page](https://www.interviewgpt.in/download) or [GitHub Releases](https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest).
-2. Download `SysCore-Setup-<version>.exe` for the guided installer.
-3. Run the installer and follow the prompts.
-4. Alternatively, download `SysCore-Portable-<version>.exe` if you prefer a portable build.
-5. Launch SysCore and sign in to your InterviewGPT account.
+## Install on macOS (beta)
 
-Windows release artifacts are signed and verified by the release workflow before publication. You can additionally compare the file against `checksums.sha256` from the same release.
+The Mac version is in **beta**: it works, but it gets less testing than Windows and is **not signed by Apple yet**, so macOS will warn you the first time.
 
-### macOS
+1. Download the `.dmg` from the [latest release](https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest).
+2. Open it and drag **SysCore** into **Applications**.
+3. Open SysCore. When macOS says it can't verify the app, click **Done**.
+4. Go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway** next to SysCore. Confirm with your password.
+5. Allow the microphone and screen-recording permissions the app asks for.
 
-1. Open [GitHub Releases](https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest).
-2. Download the universal DMG or ZIP package.
-3. Open the DMG and move SysCore to Applications, or extract the ZIP.
-4. Launch SysCore and grant the permissions required for the features you intend to use.
+If macOS says the app **"is damaged and can't be opened"**, run this once in Terminal, then open it again:
 
-The universal build supports Intel and Apple silicon Macs. Check the individual release notes for the macOS signing and notarization status before installing.
+```bash
+xattr -cr /Applications/SysCore.app
+```
 
-## How to use InterviewGPT
+Found a Mac issue? Please [open an issue](https://github.com/rahul-devbox/interviewgpt-desktop/issues) with your macOS version.
 
-1. **Sign in** with your InterviewGPT account.
-2. **Add context** such as your resume, target role, and preferred answer style.
-3. **Start a session** before joining your interview or practice call.
-4. Use **live transcription**, **AI Answer**, or **Analyze Screen** when relevant.
-5. End the session to save and review the transcript in your history.
+## Get started
 
-For the best results, test your microphone, system-audio permissions, shortcuts, and screen-capture permissions before an important interview.
+1. **Sign in** with your InterviewGPT account (free to create).
+2. **Add your resume** and the role, and pick an answer style.
+3. **Start a session** before you join the call. Run a private test call first to check audio and screen share.
+4. During the call, use **AI Answer**, **Analyze Screen** or **Chat**.
+5. **End the session** to save the transcript to your history.
 
-## Releases and release notes
+### Useful shortcuts (Windows)
 
-- [Latest release](https://github.com/rahul-devbox/interviewgpt-desktop/releases/latest)
-- [All releases and release notes](https://github.com/rahul-devbox/interviewgpt-desktop/releases)
-- [Official website](https://www.interviewgpt.in)
+| Shortcut | Action |
+|---|---|
+| `Ctrl + Alt + H` | Hide or show the whole app |
+| `Ctrl + Shift + Enter` | Analyze Screen |
+| `Ctrl + Shift + A` | Open AI chat |
 
-Each release is built from an exact approved private-source commit. The automated pipeline validates dependencies, runs linting and type checks, executes the test suite, builds Windows and macOS artifacts, generates checksums and an SBOM, and publishes a release manifest for traceability.
+Full list: [interviewgpt.in/shortcuts](https://www.interviewgpt.in/shortcuts).
+
+## Updates
+
+- **Installer:** updates download in the background and install the next time you restart the app.
+- **Portable:** the new version downloads in the background; close the app and run the new file.
+
+## Pricing
+
+- **Free:** 10-minute sessions, up to 3 a day, no card needed.
+- **Credits:** pay as you go; 1 credit = 1 hour, used in 30-minute blocks. **Credits never expire.**
+- **Unlimited passes:** weekly, monthly or yearly.
+
+Current prices: [interviewgpt.in/pricing](https://www.interviewgpt.in/pricing).
+
+## Privacy and security
+
+- Audio is streamed for transcription and **not stored** by InterviewGPT.
+- This repository contains **only** release files and documentation: never source code, credentials or user data.
+- Every release includes SHA-256 checksums, a CycloneDX SBOM, a release manifest and GitHub artifact attestations.
+
+More: [interviewgpt.in/privacy](https://www.interviewgpt.in/privacy) · [interviewgpt.in/trust](https://www.interviewgpt.in/trust)
 
 ## Verify a download
 
-Download `checksums.sha256` from the same release as your application file.
+Download `checksums.sha256` from the same release as your file.
 
-Windows PowerShell:
+**Windows (PowerShell):**
 
 ```powershell
 Get-FileHash .\SysCore-Setup-<version>.exe -Algorithm SHA256
 Get-Content .\checksums.sha256
 ```
 
-macOS:
+**macOS:**
 
 ```bash
 shasum -a 256 SysCore-<version>-mac-universal.dmg
-grep 'SysCore-<version>-mac-universal.dmg' checksums.sha256
+grep 'mac-universal.dmg' checksums.sha256
 ```
 
-GitHub CLI users can also verify the release attestation:
+**GitHub CLI (artifact attestation):**
 
 ```bash
-gh attestation verify SysCore-Setup-<version>.exe \
-  --repo rahul-devbox/interviewgpt-desktop
+gh attestation verify SysCore-Setup-<version>.exe --repo rahul-devbox/interviewgpt-desktop
 ```
 
-## Security and repository scope
+## FAQ
 
-This repository intentionally contains release automation, documentation, downloadable binaries, and public verification metadata only. It must never contain private Electron source code, backend credentials, authentication secrets, payment secrets, or signing keys.
+<details>
+<summary><b>Why does Windows say "Windows protected your PC"?</b></summary>
 
-Published releases can include:
+SmartScreen shows this for apps it hasn't seen often yet. InterviewGPT is signed with our own self-signed certificate. Click **More info → Run anyway**. You can check the file against `checksums.sha256` first.
+</details>
 
-- Windows installer and portable executables
-- macOS DMG and ZIP packages
-- `latest.yml`, `latest-mac.yml`, and `portable-win.json`
-- `checksums.sha256`
-- `sbom.cyclonedx.json`
-- `release-manifest.json`
-- GitHub artifact attestations
+<details>
+<summary><b>Can the other people on the call see InterviewGPT?</b></summary>
 
-For release-process details, see [Releasing InterviewGPT Desktop](./docs/RELEASING.md) and the [dual-repository release architecture](./docs/dual-repo-release-process.md).
+On supported Windows 10/11 setups, Windows itself excludes the app's window from screen share, recordings and screenshots, so they see the desktop behind it. Always run a private test call first.
+</details>
 
-## Support and feedback
+<details>
+<summary><b>Is the Mac version ready?</b></summary>
 
-- Product information and downloads: [https://www.interviewgpt.in](https://www.interviewgpt.in)
-- Desktop downloads: [GitHub Releases](https://github.com/rahul-devbox/interviewgpt-desktop/releases)
-- Bug reports: [GitHub Issues](https://github.com/rahul-devbox/interviewgpt-desktop/issues)
+It's a beta: the main features work, but Windows is our primary platform. Expect the first-launch warning described in [Install on macOS](#install-on-macos-beta).
+</details>
 
-When reporting a desktop issue, include your operating system, SysCore version, installation type, and the relevant non-sensitive logs. Never post access tokens, credentials, resumes, interview transcripts, or other personal data publicly.
+<details>
+<summary><b>Is it free?</b></summary>
+
+Yes, you can start free: 10-minute sessions, up to 3 a day. The Invisible Browser and the ATS resume checker are free too.
+</details>
+
+## Support
+
+- 🌐 Website: [www.interviewgpt.in](https://www.interviewgpt.in)
+- 🐞 Bugs: [GitHub Issues](https://github.com/rahul-devbox/interviewgpt-desktop/issues) (include your OS, app version and install type; never post passwords, resumes or transcripts)
+- ✉️ Email: [support@interviewgpt.in](mailto:support@interviewgpt.in)
+- ▶️ YouTube: [@Interview-gpt](https://www.youtube.com/@Interview-gpt)
 
 ## Responsible use
 
-Use InterviewGPT in accordance with applicable interview, employer, platform, and local policies. Obtain consent for recording or transcription wherever required.
+InterviewGPT is built for conversations where AI assistance is permitted. Follow the rules of your employer, interviewer and meeting platform, and get consent for recording or transcription where required.
+
+## For maintainers
+
+Release process and configuration: [docs/RELEASING.md](./docs/RELEASING.md) · [docs/dual-repo-release-process.md](./docs/dual-repo-release-process.md) · [docs/github-configuration.md](./docs/github-configuration.md)
 
 ---
 
 <div align="center">
-  <strong>InterviewGPT — Invisible. Intelligent. Always Ready.</strong><br />
-  <a href="https://www.interviewgpt.in">www.interviewgpt.in</a>
+
+**InterviewGPT · Invisible. Intelligent. Always ready.**
+[www.interviewgpt.in](https://www.interviewgpt.in)
+
 </div>

@@ -421,13 +421,41 @@ jobs:
           find . -type f ! -name 'checksums.sha256' -print0 | sort -z | xargs -0 sha256sum > checksums.sha256
 
       - name: Write release notes
+        env:
+          SOURCE_TOKEN: ${{ secrets.SOURCE_REPO_READ_TOKEN }}
+          RELEASE_TOKEN: ${{ github.token }}
+          SOURCE_REPOSITORY: ${{ needs.validate.outputs.source_repository }}
         run: |
-          cat > release-notes.md <<'EOF'
-          SysCore ${{ inputs.version }}
+          # "What's new": the private commits since the previous public release,
+          # as their one-line summaries, without version-bump commits. Best
+          # effort: a release is never blocked by its notes.
+          PREVIOUS_TAG="$(GH_TOKEN="${RELEASE_TOKEN}" gh release list -R "${{ github.repository }}" --exclude-drafts --limit 20 --json tagName --jq '[.[].tagName] | map(select(. != "${{ inputs.release_tag }}")) | .[0] // empty' 2>/dev/null || true)"
+          CHANGES=""
+          if [ -n "${PREVIOUS_TAG}" ]; then
+            CHANGES="$(GH_TOKEN="${SOURCE_TOKEN}" gh api "repos/${SOURCE_REPOSITORY}/compare/${PREVIOUS_TAG}...${{ inputs.source_sha }}" --jq '.commits[].commit.message | split("\n")[0] | select((startswith("chore(release)") or startswith("Merge ")) | not) | "- " + .' 2>/dev/null || true)"
+          fi
+          if [ -z "${CHANGES}" ]; then
+            CHANGES="- Fixes and improvements."
+          fi
 
-          Release repository: `${{ github.repository }}`
-          Source repository: `${{ needs.validate.outputs.source_repository }}`
-          Source ref: `${{ inputs.source_ref }}`
+          {
+            echo "## SysCore ${{ inputs.version }}"
+            echo ""
+            echo "### What's new"
+            echo ""
+            echo "${CHANGES}"
+            echo ""
+            echo "### Download"
+            echo ""
+            echo "- **Windows 10/11:** \`SysCore-Setup-${{ inputs.version }}.exe\` (installer) or \`SysCore-Portable-${{ inputs.version }}.exe\` (portable). If Windows shows \"Windows protected your PC\", click **More info → Run anyway** (the app uses a self-signed certificate)."
+            echo "- **macOS (beta):** \`SysCore-${{ inputs.version }}-mac-universal.dmg\`. Not signed by Apple yet: allow it in **System Settings → Privacy & Security → Open Anyway**."
+            echo "- Or download from https://www.interviewgpt.in/download"
+            echo ""
+          } > release-notes.md
+
+          cat >> release-notes.md <<'EOF'
+          ### Build details
+
           Source SHA: `${{ inputs.source_sha }}`
 
           Included assets:
