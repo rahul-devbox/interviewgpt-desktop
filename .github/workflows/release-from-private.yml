@@ -34,6 +34,12 @@ permissions:
 env:
   PUBLIC_UPDATE_BASE_URL: https://github.com/${{ github.repository }}/releases/latest/download
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  REQUESTED_SOURCE_OWNER: ${{ inputs.source_owner }}
+  REQUESTED_SOURCE_REPO: ${{ inputs.source_repo }}
+  REQUESTED_SOURCE_REF: ${{ inputs.source_ref }}
+  REQUESTED_SOURCE_SHA: ${{ inputs.source_sha }}
+  REQUESTED_VERSION: ${{ inputs.version }}
+  REQUESTED_RELEASE_TAG: ${{ inputs.release_tag }}
 
 concurrency:
   group: release-${{ inputs.release_tag }}
@@ -48,6 +54,13 @@ jobs:
     steps:
       - name: Checkout release repository
         uses: actions/checkout@v6
+
+      - name: Validate release request before source checkout
+        env:
+          EXPECTED_SOURCE_REPO_OWNER: ${{ vars.EXPECTED_SOURCE_REPO_OWNER }}
+        run: |
+          node --test .github/scripts/validate-release-request.test.cjs
+          node .github/scripts/validate-release-request.cjs
 
       - name: Checkout private source
         uses: actions/checkout@v6
@@ -72,32 +85,8 @@ jobs:
         working-directory: source
         run: |
           ACTUAL_VERSION="$(node -p "require('./package.json').version")"
-          if [ "${ACTUAL_VERSION}" != "${{ inputs.version }}" ]; then
-            echo "Expected version ${{ inputs.version }}, found ${ACTUAL_VERSION}" >&2
-            exit 1
-          fi
-
-      - name: Verify source repository allowlist and release tag
-        shell: bash
-        env:
-          EXPECTED_SOURCE_REPO_OWNER: ${{ vars.EXPECTED_SOURCE_REPO_OWNER }}
-        run: |
-          EXPECTED_RELEASE_TAG="v${{ inputs.version }}"
-          if [ "${{ inputs.release_tag }}" != "${EXPECTED_RELEASE_TAG}" ]; then
-            echo "Release tag ${{ inputs.release_tag }} does not match version ${{ inputs.version }}." >&2
-            echo "Expected tag: ${EXPECTED_RELEASE_TAG}" >&2
-            exit 1
-          fi
-
-          if [ "${{ inputs.source_repo }}" != "app-interviewgpt" ]; then
-            echo "Source repository name ${{ inputs.source_repo }} is not allowed." >&2
-            echo "Expected: app-interviewgpt" >&2
-            exit 1
-          fi
-
-          if [ -n "${EXPECTED_SOURCE_REPO_OWNER}" ] && [ "${{ inputs.source_owner }}" != "${EXPECTED_SOURCE_REPO_OWNER}" ]; then
-            echo "Source repository owner ${{ inputs.source_owner }} is not allowed." >&2
-            echo "Expected: ${EXPECTED_SOURCE_REPO_OWNER}" >&2
+          if [ "${ACTUAL_VERSION}" != "${REQUESTED_VERSION}" ]; then
+            echo "Expected version ${REQUESTED_VERSION}, found ${ACTUAL_VERSION}" >&2
             exit 1
           fi
 
@@ -122,15 +111,15 @@ jobs:
       - name: Generate release manifest
         id: metadata
         run: |
-          SOURCE_REPOSITORY="${{ inputs.source_owner }}/${{ inputs.source_repo }}"
+          SOURCE_REPOSITORY="${REQUESTED_SOURCE_OWNER}/${REQUESTED_SOURCE_REPO}"
           node .github/scripts/write-release-manifest.cjs \
-            --version "${{ inputs.version }}" \
+            --version "${REQUESTED_VERSION}" \
             --output release-validation/release-manifest.json \
             --source-repository "${SOURCE_REPOSITORY}" \
-            --source-ref "${{ inputs.source_ref }}" \
-            --source-sha "${{ inputs.source_sha }}" \
+            --source-ref "${REQUESTED_SOURCE_REF}" \
+            --source-sha "${REQUESTED_SOURCE_SHA}" \
             --release-repository "${{ github.repository }}" \
-            --release-tag "${{ inputs.release_tag }}" \
+            --release-tag "${REQUESTED_RELEASE_TAG}" \
             --workflow-run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           echo "source_repository=${SOURCE_REPOSITORY}" >> "${GITHUB_OUTPUT}"
@@ -253,6 +242,15 @@ jobs:
             throw "Expected signed installer and portable Windows executables."
           }
 
+          # The helper is launched separately and must carry the same signature as the app.
+          foreach ($relativePath in @('win-unpacked/syscore.exe', 'win-unpacked/resources/native/win32-x64/system-audio-capture.exe')) {
+            $packagedExecutable = Join-Path '.generated/release' $relativePath
+            if (-not (Test-Path -LiteralPath $packagedExecutable -PathType Leaf)) {
+              throw "Missing packaged executable: $relativePath"
+            }
+            $executables = @($executables) + (Get-Item -LiteralPath $packagedExecutable)
+          }
+
           foreach ($executable in $executables) {
             $signature = Get-AuthenticodeSignature -LiteralPath $executable.FullName
             if (-not $signature.SignerCertificate) {
@@ -281,9 +279,9 @@ jobs:
           test -f .generated/release/latest.yml
           node ../.github/scripts/write-portable-update-manifest.cjs \
             --release-dir .generated/release \
-            --version "${{ inputs.version }}" \
+            --version "${REQUESTED_VERSION}" \
             --release-repository "${{ github.repository }}" \
-            --release-tag "${{ inputs.release_tag }}" \
+            --release-tag "${REQUESTED_RELEASE_TAG}" \
             --output .generated/release/portable-win.json
           test -f .generated/release/portable-win.json
 
@@ -429,17 +427,17 @@ jobs:
           # "What's new": the private commits since the previous public release,
           # as their one-line summaries, without version-bump commits. Best
           # effort: a release is never blocked by its notes.
-          PREVIOUS_TAG="$(GH_TOKEN="${RELEASE_TOKEN}" gh release list -R "${{ github.repository }}" --exclude-drafts --limit 20 --json tagName --jq '[.[].tagName] | map(select(. != "${{ inputs.release_tag }}")) | .[0] // empty' 2>/dev/null || true)"
+          PREVIOUS_TAG="$(GH_TOKEN="${RELEASE_TOKEN}" gh release list -R "${{ github.repository }}" --exclude-drafts --limit 20 --json tagName --jq "[.[].tagName] | map(select(. != \"${REQUESTED_RELEASE_TAG}\")) | .[0] // empty" 2>/dev/null || true)"
           CHANGES=""
           if [ -n "${PREVIOUS_TAG}" ]; then
-            CHANGES="$(GH_TOKEN="${SOURCE_TOKEN}" gh api "repos/${SOURCE_REPOSITORY}/compare/${PREVIOUS_TAG}...${{ inputs.source_sha }}" --jq '.commits[].commit.message | split("\n")[0] | select((startswith("chore(release)") or startswith("Merge ")) | not) | "- " + .' 2>/dev/null || true)"
+            CHANGES="$(GH_TOKEN="${SOURCE_TOKEN}" gh api "repos/${SOURCE_REPOSITORY}/compare/${PREVIOUS_TAG}...${REQUESTED_SOURCE_SHA}" --jq '.commits[].commit.message | split("\n")[0] | select((startswith("chore(release)") or startswith("Merge ")) | not) | "- " + .' 2>/dev/null || true)"
           fi
           if [ -z "${CHANGES}" ]; then
             CHANGES="- Fixes and improvements."
           fi
 
           {
-            echo "## SysCore ${{ inputs.version }}"
+            echo "## SysCore ${REQUESTED_VERSION}"
             echo ""
             echo "### What's new"
             echo ""
@@ -447,16 +445,14 @@ jobs:
             echo ""
             echo "### Download"
             echo ""
-            echo "- **Windows 10/11:** \`SysCore-Setup-${{ inputs.version }}.exe\` (installer) or \`SysCore-Portable-${{ inputs.version }}.exe\` (portable). If Windows shows \"Windows protected your PC\", click **More info → Run anyway** (the app uses a self-signed certificate)."
-            echo "- **macOS (beta):** \`SysCore-${{ inputs.version }}-mac-universal.dmg\`. Not signed by Apple yet: allow it in **System Settings → Privacy & Security → Open Anyway**."
+            echo "- **Windows 10/11:** \`SysCore-Setup-${REQUESTED_VERSION}.exe\` (installer) or \`SysCore-Portable-${REQUESTED_VERSION}.exe\` (portable). If Windows shows \"Windows protected your PC\", click **More info → Run anyway** (the app uses a self-signed certificate)."
+            echo "- **macOS (beta):** \`SysCore-${REQUESTED_VERSION}-mac-universal.dmg\`. Not signed by Apple yet: allow it in **System Settings → Privacy & Security → Open Anyway**."
             echo "- Or download from https://www.interviewgpt.in/download"
             echo ""
           } > release-notes.md
 
+          printf '\n### Build details\n\nSource SHA: `%s`\n' "${REQUESTED_SOURCE_SHA}" >> release-notes.md
           cat >> release-notes.md <<'EOF'
-          ### Build details
-
-          Source SHA: `${{ inputs.source_sha }}`
 
           Included assets:
           - Windows NSIS installer
@@ -494,13 +490,13 @@ jobs:
             release-assets/flat-assets/*
           )
 
-          if gh release view "${{ inputs.release_tag }}" -R "${RELEASE_REPO}" >/dev/null 2>&1; then
-            gh release upload "${{ inputs.release_tag }}" "${files[@]}" --clobber -R "${RELEASE_REPO}"
-            gh release edit "${{ inputs.release_tag }}" --notes-file release-notes.md -R "${RELEASE_REPO}"
+          if gh release view "${REQUESTED_RELEASE_TAG}" -R "${RELEASE_REPO}" >/dev/null 2>&1; then
+            gh release upload "${REQUESTED_RELEASE_TAG}" "${files[@]}" --clobber -R "${RELEASE_REPO}"
+            gh release edit "${REQUESTED_RELEASE_TAG}" --notes-file release-notes.md -R "${RELEASE_REPO}"
           else
-            gh release create "${{ inputs.release_tag }}" "${files[@]}" \
+            gh release create "${REQUESTED_RELEASE_TAG}" "${files[@]}" \
               -R "${RELEASE_REPO}" \
-              --title "SysCore ${{ inputs.version }}" \
+              --title "SysCore ${REQUESTED_VERSION}" \
               --notes-file release-notes.md
           fi
 
@@ -509,10 +505,10 @@ jobs:
           {
             echo "## Release published"
             echo ""
-            echo "- Tag: \`${{ inputs.release_tag }}\`"
-            echo "- Version: \`${{ inputs.version }}\`"
+            echo "- Tag: \`${REQUESTED_RELEASE_TAG}\`"
+            echo "- Version: \`${REQUESTED_VERSION}\`"
             echo "- Source repository: \`${{ needs.validate.outputs.source_repository }}\`"
-            echo "- Source SHA: \`${{ inputs.source_sha }}\`"
+            echo "- Source SHA: \`${REQUESTED_SOURCE_SHA}\`"
             echo "- Public update base URL: \`${{ env.PUBLIC_UPDATE_BASE_URL }}\`"
             echo "- Windows packaging mode: \`${{ needs.package-windows.outputs.packaging_mode }}\`"
             echo "- macOS packaging mode: \`${{ needs.package-macos.outputs.packaging_mode }}\`"
